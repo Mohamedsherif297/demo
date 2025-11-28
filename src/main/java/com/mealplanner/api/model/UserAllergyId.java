@@ -1,5 +1,6 @@
 package com.mealplanner.api.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.util.Objects;
@@ -8,7 +9,9 @@ import java.util.Objects;
 @Embeddable 
 public class UserAllergyId implements Serializable {
 
+    @Column(name = "user_id")
     private Integer userId;
+    @Column(name = "allergy_id")
     private Integer allergyId;
 
     // ----------------------------------------------------

@@ -3,7 +3,7 @@ package com.mealplanner.api.model;
 import jakarta.persistence.*;
 import java.util.Set;
 // Assuming User class is in the same 'model' package as we defined previously
-import com.mealplanner.api.model.User; 
+//import com.mealplanner.api.model.User; 
 
 @Entity
 @Table(name = "custom_plan")

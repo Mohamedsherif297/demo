@@ -6,7 +6,7 @@ import java.time.LocalTime;
 import java.util.Set;
 
 // Imports for external entities (User, CustomPlan)
-import com.mealplanner.api.model.User;
+//import com.mealplanner.api.model.User;
 
 @Entity
 @Table(name = "subscription")

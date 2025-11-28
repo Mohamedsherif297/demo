@@ -53,8 +53,9 @@ public class UserService {
         return Optional.empty(); 
     }
 
+    
     public User findUserById(Integer userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        return userRepository.findById(userId.intValue())
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
     }
 }

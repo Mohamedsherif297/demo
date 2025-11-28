@@ -1,5 +1,6 @@
 package com.mealplanner.api.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.util.Objects;
@@ -7,7 +8,9 @@ import java.util.Objects;
 @Embeddable 
 public class CustomPlanMealId implements Serializable {
 
+    @Column(name = "custom_plan_id")
     private Integer customPlanId;
+    @Column(name = "meal_id")
     private Integer mealId;
 
     // ----------------------------------------------------
