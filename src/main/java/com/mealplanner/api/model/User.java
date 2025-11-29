@@ -19,6 +19,10 @@ public class User {
     private String email;
 
     private String passwordHash;
+    
+    @Column(nullable = false)
+    private boolean emailVerified = false;
+    
     private LocalDate dob;
     private String phoneNumber;
     private String address;
@@ -74,6 +78,9 @@ public class User {
 
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
 
     public LocalDate getDob() { return dob; }
     public void setDob(LocalDate dob) { this.dob = dob; }
