@@ -65,6 +65,7 @@ public class UserService {
         return Optional.empty(); 
     }
 
+    @SuppressWarnings("null")
     public User findUserById(Integer userId) {
         return userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
@@ -75,6 +76,7 @@ public class UserService {
             .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 
+    @SuppressWarnings("null")
     public User updateProfile(Integer userId, UpdateProfileDto updateDto) {
         User user = findUserById(userId);
 

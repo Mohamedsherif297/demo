@@ -13,6 +13,29 @@ Development: http://localhost:8080
 Production: [YOUR_PRODUCTION_URL]
 ```
 
+## 📚 API Endpoints Overview
+
+### Authentication (`/api/v1/users`)
+- Register, Login, Logout
+- Profile management
+- Password management
+- Email verification
+
+### Meals (`/api/meals`)
+- Browse meals (public)
+- Rate meals (authenticated)
+- CRUD operations (admin)
+
+### Custom Plans (`/api/plans`)
+- Browse plans (public)
+- Create/manage plans (authenticated)
+- Add/remove meals
+
+### Subscriptions (`/api/subscriptions`)
+- Create subscriptions
+- Manage subscription status
+- View scheduled meals
+
 ---
 
 ## 🔐 Authentication Flow
@@ -52,6 +75,7 @@ const data = await response.json();
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "550e8400-e29b-41d4-a716-446655440000",
   "type": "Bearer",
   "userId": 1,
   "email": "john@example.com",
@@ -59,6 +83,8 @@ const data = await response.json();
   "role": "CLIENT"
 }
 ```
+
+**Note:** A verification email is sent automatically. User can still use the app but some features may require email verification.
 
 **Error Response (400 Bad Request):**
 ```json
@@ -95,6 +121,7 @@ const data = await response.json();
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "550e8400-e29b-41d4-a716-446655440000",
   "type": "Bearer",
   "userId": 1,
   "email": "john@example.com",
@@ -154,15 +181,87 @@ const data = await response.json();
 
 ---
 
+### 4. Verify Email
+
+**Endpoint:** `GET /api/v1/users/verify-email?token={token}`
+
+**Request:**
+```javascript
+const urlParams = new URLSearchParams(window.location.search);
+const token = urlParams.get('token');
+
+const response = await fetch(`http://localhost:8080/api/v1/users/verify-email?token=${token}`, {
+  method: 'GET'
+});
+
+const data = await response.json();
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Email verified successfully"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Invalid or expired verification token"
+}
+```
+
+---
+
+### 5. Resend Verification Email
+
+**Endpoint:** `POST /api/v1/users/resend-verification`
+
+**Request:**
+```javascript
+const response = await fetch('http://localhost:8080/api/v1/users/resend-verification', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    email: 'john@example.com'
+  })
+});
+
+const data = await response.json();
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Verification email sent"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Email is already verified"
+}
+```
+
+---
+
 ## 💾 Token Management
 
-### Store Token After Login/Registration
+### Store Tokens After Login/Registration
 ```javascript
 // After successful login or registration
-const { token, userId, email, fullName, role } = response.data;
+const { token, refreshToken, userId, email, fullName, role } = response.data;
 
-// Store token
+// Store tokens
 localStorage.setItem('authToken', token);
+localStorage.setItem('refreshToken', refreshToken);
 
 // Store user info (optional)
 localStorage.setItem('user', JSON.stringify({
@@ -178,11 +277,39 @@ localStorage.setItem('user', JSON.stringify({
 const token = localStorage.getItem('authToken');
 ```
 
-### Clear Token on Logout
+### Clear Tokens on Logout
 ```javascript
 localStorage.removeItem('authToken');
+localStorage.removeItem('refreshToken');
 localStorage.removeItem('user');
 // Redirect to login page
+```
+
+### Refresh Access Token
+```javascript
+async function refreshAccessToken() {
+  const refreshToken = localStorage.getItem('refreshToken');
+  
+  const response = await fetch('http://localhost:8080/api/v1/users/refresh-token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ refreshToken })
+  });
+
+  if (response.ok) {
+    const { token, refreshToken: newRefreshToken } = await response.json();
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('refreshToken', newRefreshToken);
+    return token;
+  } else {
+    // Refresh token expired, redirect to login
+    localStorage.clear();
+    window.location.href = '/login';
+    throw new Error('Session expired');
+  }
+}
 ```
 
 ---
@@ -207,10 +334,16 @@ class ApiService {
     localStorage.setItem('authToken', token);
   }
 
-  // Remove auth token
+  // Remove auth tokens
   removeToken() {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+  }
+
+  // Get refresh token
+  getRefreshToken() {
+    return localStorage.getItem('refreshToken');
   }
 
   // Register user
@@ -257,6 +390,7 @@ class ApiService {
 
     const data = await response.json();
     this.setToken(data.token);
+    localStorage.setItem('refreshToken', data.refreshToken);
     localStorage.setItem('user', JSON.stringify({
       userId: data.userId,
       email: data.email,
@@ -265,6 +399,38 @@ class ApiService {
     }));
 
     return data;
+  }
+
+  // Verify email
+  async verifyEmail(token) {
+    const response = await fetch(`${this.baseURL}/users/verify-email?token=${token}`, {
+      method: 'GET'
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Email verification failed');
+    }
+
+    return await response.json();
+  }
+
+  // Resend verification email
+  async resendVerification(email) {
+    const response = await fetch(`${this.baseURL}/users/resend-verification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to resend verification email');
+    }
+
+    return await response.json();
   }
 
   // Get user profile
@@ -281,8 +447,25 @@ class ApiService {
 
     if (!response.ok) {
       if (response.status === 401) {
-        this.removeToken();
-        throw new Error('Session expired. Please login again.');
+        // Try to refresh token
+        try {
+          const newToken = await this.refreshAccessToken();
+          // Retry the request with new token
+          const retryResponse = await fetch(`${this.baseURL}/users/${userId}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (retryResponse.ok) {
+            return await retryResponse.json();
+          }
+        } catch (refreshError) {
+          this.removeToken();
+          throw new Error('Session expired. Please login again.');
+        }
       }
       throw new Error('Failed to fetch user profile');
     }
@@ -291,9 +474,23 @@ class ApiService {
   }
 
   // Logout
-  logout() {
+  async logout() {
+    const token = this.getToken();
+    
+    if (token) {
+      try {
+        await fetch(`${this.baseURL}/users/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    }
+    
     this.removeToken();
-    // Redirect to login page
     window.location.href = '/login';
   }
 
@@ -312,14 +509,120 @@ class ApiService {
 
     if (!response.ok) {
       if (response.status === 401) {
-        this.removeToken();
-        throw new Error('Session expired. Please login again.');
+        // Try to refresh token
+        try {
+          const newToken = await this.refreshAccessToken();
+          // Retry the request with new token
+          const retryResponse = await fetch(`${this.baseURL}${endpoint}`, {
+            ...options,
+            headers: {
+              'Authorization': `Bearer ${newToken}`,
+              'Content-Type': 'application/json',
+              ...options.headers,
+            }
+          });
+          
+          if (retryResponse.ok) {
+            return await retryResponse.json();
+          }
+        } catch (refreshError) {
+          this.removeToken();
+          throw new Error('Session expired. Please login again.');
+        }
       }
       const error = await response.json();
       throw new Error(error.message || 'Request failed');
     }
 
     return await response.json();
+  }
+
+  // Browse meals (public)
+  async getMeals(search = '', minRating = null, excludeAllergens = [], page = 0, size = 20) {
+    let url = `${this.baseURL.replace('/v1', '')}/meals?page=${page}&size=${size}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (minRating) url += `&minRating=${minRating}`;
+    if (excludeAllergens.length > 0) url += `&excludeAllergens=${excludeAllergens.join(',')}`;
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch meals');
+    return await response.json();
+  }
+
+  // Get meal details (public)
+  async getMealById(mealId) {
+    const response = await fetch(`${this.baseURL.replace('/v1', '')}/meals/${mealId}`);
+    if (!response.ok) throw new Error('Failed to fetch meal');
+    return await response.json();
+  }
+
+  // Rate a meal (authenticated)
+  async rateMeal(mealId, rating) {
+    return await this.authenticatedRequest(`/meals/${mealId}/rate`.replace('/v1', ''), {
+      method: 'POST',
+      body: JSON.stringify({ rating })
+    });
+  }
+
+  // Browse custom plans (public)
+  async getPlans(categoryId = null, page = 0, size = 20) {
+    let url = `${this.baseURL.replace('/v1', '')}/plans?page=${page}&size=${size}`;
+    if (categoryId) url += `&categoryId=${categoryId}`;
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch plans');
+    return await response.json();
+  }
+
+  // Get plan categories (public)
+  async getPlanCategories() {
+    const response = await fetch(`${this.baseURL.replace('/v1', '')}/plans/categories`);
+    if (!response.ok) throw new Error('Failed to fetch categories');
+    return await response.json();
+  }
+
+  // Create custom plan (authenticated)
+  async createPlan(name, description, categoryId, mealIds) {
+    return await this.authenticatedRequest('/plans'.replace('/v1', ''), {
+      method: 'POST',
+      body: JSON.stringify({ name, description, categoryId, mealIds })
+    });
+  }
+
+  // Create subscription (authenticated)
+  async createSubscription(planId, startDate, frequency, deliveryAddress) {
+    return await this.authenticatedRequest('/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify({ planId, startDate, frequency, deliveryAddress })
+    });
+  }
+
+  // Get user subscriptions (authenticated)
+  async getUserSubscriptions(status = null, page = 0, size = 20) {
+    let url = `/subscriptions?page=${page}&size=${size}`;
+    if (status) url += `&status=${status}`;
+    return await this.authenticatedRequest(url);
+  }
+
+  // Pause subscription (authenticated)
+  async pauseSubscription(subscriptionId) {
+    return await this.authenticatedRequest(`/subscriptions/${subscriptionId}/pause`, {
+      method: 'PATCH'
+    });
+  }
+
+  // Resume subscription (authenticated)
+  async resumeSubscription(subscriptionId) {
+    return await this.authenticatedRequest(`/subscriptions/${subscriptionId}/resume`, {
+      method: 'PATCH'
+    });
+  }
+
+  // Cancel subscription (authenticated)
+  async cancelSubscription(subscriptionId) {
+    return await this.authenticatedRequest(`/subscriptions/${subscriptionId}/cancel`, {
+      method: 'PATCH'
+    });
   }
 }
 

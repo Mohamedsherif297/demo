@@ -1,13 +1,15 @@
-# Meal Planner API - Complete Authentication Documentation
+# Meal Planner API - Complete Documentation
 
 ## Base URL
 ```
-Development: http://localhost:8080/api/v1
+Development: http://localhost:8080
 ```
 
 ---
 
 ## 🔐 Authentication Endpoints
+
+All authentication endpoints are under `/api/v1/users`
 
 ### 1. Register User
 Create a new user account.
@@ -277,6 +279,51 @@ Reset password using the token from forgot password.
 
 ---
 
+### 10. Verify Email
+Verify user email address using verification token.
+
+**Endpoint:** `GET /users/verify-email?token={token}`
+
+**Query Parameters:**
+- `token` - Email verification token (sent via email)
+
+**Response (200 OK):**
+```json
+{
+  "message": "Email verified successfully"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Invalid, expired, or already used token
+
+---
+
+### 11. Resend Verification Email
+Request a new email verification token.
+
+**Endpoint:** `POST /users/resend-verification`
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "message": "Verification email sent"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Email is already verified
+- `404 Not Found` - User not found
+
+---
+
 ## 📊 Token Information
 
 ### Access Token (JWT)
@@ -310,9 +357,12 @@ Reset password using the token from forgot password.
 - ✅ Stateless session management
 - ✅ Role-based access control foundation
 
+### Implemented
+- ✅ Email verification with tokens
+- ✅ Authorization checks (users can only update own data)
+- ✅ Resend verification email
+
 ### Pending
-- ⏳ Email verification
-- ⏳ Authorization checks (user can only update own data)
 - ⏳ Rate limiting
 - ⏳ Password strength validation
 - ⏳ Production email service
@@ -370,6 +420,710 @@ localStorage.clear();
 
 ---
 
+## 🍽️ Meal Management Endpoints
+
+All meal endpoints are under `/api/meals`
+
+### 12. List Meals (Public)
+Get paginated list of meals with optional filters.
+
+**Endpoint:** `GET /meals`
+
+**Query Parameters:**
+- `search` (optional) - Search term for meal name/description
+- `minRating` (optional) - Minimum rating filter
+- `excludeAllergens` (optional) - Comma-separated allergen IDs to exclude
+- `page` (default: 0) - Page number
+- `size` (default: 20) - Items per page
+
+**Response (200 OK):**
+```json
+{
+  "content": [
+    {
+      "mealId": 1,
+      "name": "Grilled Chicken Salad",
+      "description": "Healthy protein-rich salad",
+      "calories": 350,
+      "protein": 35,
+      "carbs": 20,
+      "fats": 15,
+      "averageRating": 4.5,
+      "imageUrl": "https://example.com/image.jpg"
+    }
+  ],
+  "totalPages": 5,
+  "totalElements": 100,
+  "size": 20,
+  "number": 0
+}
+```
+
+---
+
+### 13. Get Meal Details (Public)
+Get detailed information about a specific meal.
+
+**Endpoint:** `GET /meals/{id}`
+
+**Response (200 OK):**
+```json
+{
+  "mealId": 1,
+  "name": "Grilled Chicken Salad",
+  "description": "Healthy protein-rich salad",
+  "calories": 350,
+  "protein": 35,
+  "carbs": 20,
+  "fats": 15,
+  "averageRating": 4.5,
+  "imageUrl": "https://example.com/image.jpg",
+  "ingredients": ["Chicken", "Lettuce", "Tomatoes"],
+  "allergens": ["Dairy"],
+  "preparationTime": 20
+}
+```
+
+**Error Responses:**
+- `404 Not Found` - Meal not found
+
+---
+
+### 14. Rate Meal (Authenticated)
+Rate a meal (1-5 stars).
+
+**Endpoint:** `POST /meals/{id}/rate`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Request Body:**
+```json
+{
+  "rating": 5
+}
+```
+
+**Response (200 OK):**
+```json
+{}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `404 Not Found` - Meal not found
+
+---
+
+### 15. Create Meal (Admin Only)
+Create a new meal.
+
+**Endpoint:** `POST /meals`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Request Body:**
+```json
+{
+  "name": "New Meal",
+  "description": "Description",
+  "calories": 400,
+  "protein": 30,
+  "carbs": 40,
+  "fats": 15,
+  "imageUrl": "https://example.com/image.jpg",
+  "ingredients": ["Ingredient 1", "Ingredient 2"],
+  "allergenIds": [1, 2],
+  "preparationTime": 30
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "mealId": 10,
+  "name": "New Meal",
+  "description": "Description",
+  "calories": 400,
+  "protein": 30,
+  "carbs": 40,
+  "fats": 15,
+  "averageRating": 0,
+  "imageUrl": "https://example.com/image.jpg"
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not an admin
+
+---
+
+### 16. Update Meal (Admin Only)
+Update an existing meal.
+
+**Endpoint:** `PUT /meals/{id}`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Request Body:** (all fields optional)
+```json
+{
+  "name": "Updated Meal",
+  "description": "Updated description",
+  "calories": 450
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "mealId": 10,
+  "name": "Updated Meal",
+  "description": "Updated description",
+  "calories": 450,
+  "protein": 30,
+  "carbs": 40,
+  "fats": 15,
+  "averageRating": 4.2,
+  "imageUrl": "https://example.com/image.jpg"
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not an admin
+- `404 Not Found` - Meal not found
+
+---
+
+### 17. Delete Meal (Admin Only)
+Delete a meal.
+
+**Endpoint:** `DELETE /meals/{id}`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (204 No Content)**
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not an admin
+- `404 Not Found` - Meal not found
+
+---
+
+## 📋 Custom Plan Endpoints
+
+All custom plan endpoints are under `/api/plans`
+
+### 18. List Plan Categories (Public)
+Get all available plan categories.
+
+**Endpoint:** `GET /plans/categories`
+
+**Response (200 OK):**
+```json
+[
+  {
+    "categoryId": 1,
+    "name": "Weight Loss",
+    "description": "Plans focused on losing weight"
+  },
+  {
+    "categoryId": 2,
+    "name": "Muscle Gain",
+    "description": "Plans for building muscle"
+  }
+]
+```
+
+---
+
+### 19. List Custom Plans (Public)
+Get paginated list of custom plans with optional category filter.
+
+**Endpoint:** `GET /plans`
+
+**Query Parameters:**
+- `categoryId` (optional) - Filter by category
+- `page` (default: 0) - Page number
+- `size` (default: 20) - Items per page
+
+**Response (200 OK):**
+```json
+{
+  "content": [
+    {
+      "planId": 1,
+      "name": "30-Day Weight Loss",
+      "description": "Comprehensive weight loss plan",
+      "categoryName": "Weight Loss",
+      "creatorName": "John Doe",
+      "mealCount": 90,
+      "totalCalories": 54000
+    }
+  ],
+  "totalPages": 3,
+  "totalElements": 50,
+  "size": 20,
+  "number": 0
+}
+```
+
+---
+
+### 20. Get Plan Details (Public)
+Get detailed information about a custom plan.
+
+**Endpoint:** `GET /plans/{id}`
+
+**Response (200 OK):**
+```json
+{
+  "planId": 1,
+  "name": "30-Day Weight Loss",
+  "description": "Comprehensive weight loss plan",
+  "categoryName": "Weight Loss",
+  "creatorName": "John Doe",
+  "meals": [
+    {
+      "mealId": 1,
+      "name": "Breakfast Oatmeal",
+      "calories": 300,
+      "protein": 10,
+      "carbs": 50,
+      "fats": 8
+    }
+  ],
+  "totalCalories": 54000,
+  "mealCount": 90
+}
+```
+
+**Error Responses:**
+- `404 Not Found` - Plan not found
+
+---
+
+### 21. Create Custom Plan (Authenticated)
+Create a new custom meal plan.
+
+**Endpoint:** `POST /plans`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Request Body:**
+```json
+{
+  "name": "My Custom Plan",
+  "description": "My personalized meal plan",
+  "categoryId": 1,
+  "mealIds": [1, 2, 3, 4, 5]
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "planId": 10,
+  "name": "My Custom Plan",
+  "description": "My personalized meal plan",
+  "categoryName": "Weight Loss",
+  "creatorName": "John Doe",
+  "mealCount": 5,
+  "totalCalories": 1800
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `404 Not Found` - Category or meals not found
+
+---
+
+### 22. Update Custom Plan (Owner or Admin)
+Update a custom plan.
+
+**Endpoint:** `PUT /plans/{id}`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Request Body:** (all fields optional)
+```json
+{
+  "name": "Updated Plan Name",
+  "description": "Updated description",
+  "categoryId": 2
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "planId": 10,
+  "name": "Updated Plan Name",
+  "description": "Updated description",
+  "categoryName": "Muscle Gain",
+  "creatorName": "John Doe",
+  "mealCount": 5,
+  "totalCalories": 1800
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not the owner or admin
+- `404 Not Found` - Plan not found
+
+---
+
+### 23. Delete Custom Plan (Owner or Admin)
+Delete a custom plan.
+
+**Endpoint:** `DELETE /plans/{id}`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (204 No Content)**
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not the owner or admin
+- `404 Not Found` - Plan not found
+
+---
+
+### 24. Add Meals to Plan (Owner or Admin)
+Add meals to an existing custom plan.
+
+**Endpoint:** `POST /plans/{id}/meals`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Request Body:**
+```json
+{
+  "mealIds": [6, 7, 8]
+}
+```
+
+**Response (200 OK):**
+```json
+{}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not the owner or admin
+- `404 Not Found` - Plan or meals not found
+
+---
+
+### 25. Remove Meal from Plan (Owner or Admin)
+Remove a meal from a custom plan.
+
+**Endpoint:** `DELETE /plans/{id}/meals/{mealId}`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (204 No Content)**
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not the owner or admin
+- `404 Not Found` - Plan or meal not found
+
+---
+
+## 📅 Subscription Endpoints
+
+### 26. Create Subscription (Authenticated)
+Create a new meal subscription.
+
+**Endpoint:** `POST /api/subscriptions`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Request Body:**
+```json
+{
+  "planId": 1,
+  "startDate": "2024-01-01",
+  "frequency": "DAILY",
+  "deliveryAddress": "123 Main St, City, Country"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "subscriptionId": 1,
+  "planName": "30-Day Weight Loss",
+  "startDate": "2024-01-01",
+  "endDate": "2024-01-31",
+  "frequency": "DAILY",
+  "status": "ACTIVE",
+  "deliveryAddress": "123 Main St, City, Country"
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `404 Not Found` - Plan not found
+
+---
+
+### 27. List User Subscriptions (Authenticated)
+Get user's subscriptions with optional status filter.
+
+**Endpoint:** `GET /api/subscriptions`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Query Parameters:**
+- `status` (optional) - Filter by status (ACTIVE, PAUSED, CANCELLED)
+- `page` (default: 0) - Page number
+- `size` (default: 20) - Items per page
+
+**Response (200 OK):**
+```json
+{
+  "content": [
+    {
+      "subscriptionId": 1,
+      "planName": "30-Day Weight Loss",
+      "startDate": "2024-01-01",
+      "endDate": "2024-01-31",
+      "frequency": "DAILY",
+      "status": "ACTIVE",
+      "deliveryAddress": "123 Main St, City, Country"
+    }
+  ],
+  "totalPages": 1,
+  "totalElements": 3,
+  "size": 20,
+  "number": 0
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+
+---
+
+### 28. Get Subscription Details (Owner or Admin)
+Get detailed information about a subscription.
+
+**Endpoint:** `GET /api/subscriptions/{id}`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+```json
+{
+  "subscriptionId": 1,
+  "planName": "30-Day Weight Loss",
+  "startDate": "2024-01-01",
+  "endDate": "2024-01-31",
+  "frequency": "DAILY",
+  "status": "ACTIVE",
+  "deliveryAddress": "123 Main St, City, Country",
+  "meals": [
+    {
+      "mealId": 1,
+      "name": "Breakfast Oatmeal",
+      "calories": 300
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not the owner or admin
+- `404 Not Found` - Subscription not found
+
+---
+
+### 29. Pause Subscription (Owner)
+Pause an active subscription.
+
+**Endpoint:** `PATCH /api/subscriptions/{id}/pause`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+```json
+{}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not the owner
+- `404 Not Found` - Subscription not found
+
+---
+
+### 30. Resume Subscription (Owner)
+Resume a paused subscription.
+
+**Endpoint:** `PATCH /api/subscriptions/{id}/resume`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+```json
+{}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not the owner
+- `404 Not Found` - Subscription not found
+
+---
+
+### 31. Cancel Subscription (Owner)
+Cancel a subscription.
+
+**Endpoint:** `PATCH /api/subscriptions/{id}/cancel`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+```json
+{}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not the owner
+- `404 Not Found` - Subscription not found
+
+---
+
+### 32. Get Scheduled Meals (Owner or Admin)
+Get meals scheduled for a subscription within a date range.
+
+**Endpoint:** `GET /api/subscriptions/{id}/meals`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Query Parameters:**
+- `startDate` (optional) - Start date (ISO format: YYYY-MM-DD)
+- `endDate` (optional) - End date (ISO format: YYYY-MM-DD)
+
+**Response (200 OK):**
+```json
+[
+  {
+    "scheduledDate": "2024-01-01",
+    "mealId": 1,
+    "mealName": "Breakfast Oatmeal",
+    "calories": 300,
+    "deliveryStatus": "PENDING"
+  }
+]
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not the owner or admin
+- `404 Not Found` - Subscription not found
+
+---
+
+### 33. List All Subscriptions (Admin Only)
+Get all subscriptions with optional filters.
+
+**Endpoint:** `GET /api/admin/subscriptions`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Query Parameters:**
+- `userId` (optional) - Filter by user
+- `status` (optional) - Filter by status
+- `page` (default: 0) - Page number
+- `size` (default: 20) - Items per page
+
+**Response (200 OK):**
+```json
+{
+  "content": [
+    {
+      "subscriptionId": 1,
+      "planName": "30-Day Weight Loss",
+      "userName": "John Doe",
+      "startDate": "2024-01-01",
+      "endDate": "2024-01-31",
+      "frequency": "DAILY",
+      "status": "ACTIVE"
+    }
+  ],
+  "totalPages": 5,
+  "totalElements": 100,
+  "size": 20,
+  "number": 0
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Not an admin
+
+---
+
 ## 📝 Database Tables
 
 ### Users Table
@@ -389,6 +1143,13 @@ localStorage.clear();
 - `expiry_date`
 - `used` (boolean)
 
+### Email Verification Tokens Table
+- `id` (PK)
+- `token` (unique)
+- `user_id` (FK)
+- `expiry_date`
+- `used` (boolean)
+
 ### Refresh Tokens Table
 - `id` (PK)
 - `token` (unique)
@@ -401,6 +1162,33 @@ localStorage.clear();
 - `token` (unique)
 - `blacklisted_at`
 - `expiry_date`
+
+### Meals Table
+- `meal_id` (PK)
+- `name`
+- `description`
+- `calories`, `protein`, `carbs`, `fats`
+- `image_url`
+- `preparation_time`
+- `average_rating`
+
+### Custom Plans Table
+- `plan_id` (PK)
+- `name`
+- `description`
+- `category_id` (FK)
+- `creator_id` (FK - User)
+- `created_at`
+
+### Subscriptions Table
+- `subscription_id` (PK)
+- `user_id` (FK)
+- `plan_id` (FK)
+- `start_date`
+- `end_date`
+- `frequency`
+- `status`
+- `delivery_address`
 
 ---
 

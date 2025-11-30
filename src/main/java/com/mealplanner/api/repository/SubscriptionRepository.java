@@ -1,6 +1,8 @@
 package com.mealplanner.api.repository;
 
 import com.mealplanner.api.model.Subscription;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
@@ -19,4 +21,19 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
      * Finds the current or most recent subscription for a user.
      */
     Optional<Subscription> findTopByUser_UserIdOrderByStartDateDesc(Integer userId);
+
+    /**
+     * Finds all subscriptions for a specific user with pagination.
+     */
+    Page<Subscription> findByUserUserId(Integer userId, Pageable pageable);
+
+    /**
+     * Finds all subscriptions for a specific user filtered by status with pagination.
+     */
+    Page<Subscription> findByUserUserIdAndStatusStatusName(Integer userId, String status, Pageable pageable);
+
+    /**
+     * Finds all subscriptions with a specific status with pagination.
+     */
+    Page<Subscription> findByStatusStatusName(String status, Pageable pageable);
 }
