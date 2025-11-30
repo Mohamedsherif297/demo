@@ -6,6 +6,11 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+/**
+ * DTO for creating a new subscription.
+ * Requires custom plan ID, start date, and preferred delivery time.
+ * Validates time format (HH:mm) as per Requirement 1.2.
+ */
 public class CreateSubscriptionDto {
     @NotNull(message = "Custom plan ID is required")
     private Integer customPlanId;
@@ -15,7 +20,8 @@ public class CreateSubscriptionDto {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
 
-    @JsonFormat(pattern = "HH:mm:ss")
+    @NotNull(message = "Preferred delivery time is required")
+    @JsonFormat(pattern = "HH:mm")
     private LocalTime preferredTime;
 
     public CreateSubscriptionDto() {

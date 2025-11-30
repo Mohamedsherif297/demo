@@ -36,6 +36,12 @@ Production: [YOUR_PRODUCTION_URL]
 - Manage subscription status
 - View scheduled meals
 
+### Deliveries (`/api/deliveries`)
+- Track current delivery
+- View delivery history
+- Update delivery preferences
+- Confirm delivery receipt
+
 ---
 
 ## 🔐 Authentication Flow
@@ -624,10 +630,138 @@ class ApiService {
       method: 'PATCH'
     });
   }
+
+  // Get current delivery (authenticated)
+  async getCurrentDelivery() {
+    return await this.authenticatedRequest('/deliveries/current');
+  }
+
+  // Get delivery by ID (authenticated)
+  async getDeliveryById(deliveryId) {
+    return await this.authenticatedRequest(`/deliveries/${deliveryId}`);
+  }
+
+  // Get delivery history (authenticated)
+  async getDeliveryHistory(filters = {}, page = 0, size = 20) {
+    let url = `/deliveries/history?page=${page}&size=${size}`;
+    if (filters.startDate) url += `&startDate=${filters.startDate}`;
+    if (filters.endDate) url += `&endDate=${filters.endDate}`;
+    if (filters.status) url += `&status=${filters.status}`;
+    return await this.authenticatedRequest(url);
+  }
+
+  // Update delivery preferences (authenticated)
+  async updateDeliveryPreferences(deliveryId, updates) {
+    return await this.authenticatedRequest(`/deliveries/${deliveryId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates)
+    });
+  }
+
+  // Confirm delivery (authenticated)
+  async confirmDelivery(deliveryId) {
+    return await this.authenticatedRequest(`/deliveries/${deliveryId}/confirm`, {
+      method: 'POST'
+    });
+  }
+
+  // Admin: Get all deliveries (admin only)
+  async adminGetAllDeliveries(filters = {}, page = 0, size = 20) {
+    let url = `/admin/deliveries?page=${page}&size=${size}`;
+    if (filters.status) url += `&status=${filters.status}`;
+    if (filters.date) url += `&date=${filters.date}`;
+    if (filters.userId) url += `&userId=${filters.userId}`;
+    if (filters.userEmail) url += `&userEmail=${filters.userEmail}`;
+    return await this.authenticatedRequest(url);
+  }
+
+  // Admin: Get delivery details (admin only)
+  async adminGetDeliveryById(deliveryId) {
+    return await this.authenticatedRequest(`/admin/deliveries/${deliveryId}`);
+  }
+
+  // Admin: Update delivery status (admin only)
+  async adminUpdateDeliveryStatus(deliveryId, status) {
+    return await this.authenticatedRequest(`/admin/deliveries/${deliveryId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    });
+  }
 }
 
 // Export singleton instance
 export const apiService = new ApiService();
+```
+
+---
+
+## 📦 Delivery Tracking Examples
+
+### Get Current Delivery
+
+```javascript
+const getCurrentDelivery = async () => {
+  try {
+    const delivery = await apiService.getCurrentDelivery();
+    console.log('Today\'s delivery:', delivery);
+    // Display delivery status, time, address, and meals
+  } catch (err) {
+    if (err.message.includes('No active delivery')) {
+      console.log('No delivery scheduled for today');
+    }
+  }
+};
+```
+
+### Update Delivery Preferences
+
+```javascript
+// Update delivery time
+await apiService.updateDeliveryPreferences(123, { 
+  deliveryTime: '19:30' 
+});
+
+// Update address
+await apiService.updateDeliveryPreferences(123, { 
+  address: '456 Oak Avenue, City, Country' 
+});
+
+// Update both
+await apiService.updateDeliveryPreferences(123, { 
+  deliveryTime: '19:30',
+  address: '456 Oak Avenue, City, Country'
+});
+```
+
+### Confirm Delivery
+
+```javascript
+const confirmDelivery = async (deliveryId) => {
+  try {
+    const confirmed = await apiService.confirmDelivery(deliveryId);
+    console.log('Delivery confirmed:', confirmed);
+  } catch (err) {
+    console.error('Cannot confirm:', err.message);
+  }
+};
+```
+
+### Get Delivery History
+
+```javascript
+// Get all deliveries
+const history = await apiService.getDeliveryHistory();
+
+// Get deliveries for January 2024
+const januaryDeliveries = await apiService.getDeliveryHistory({
+  startDate: '2024-01-01',
+  endDate: '2024-01-31'
+});
+
+// Get only confirmed deliveries
+const confirmedDeliveries = await apiService.getDeliveryHistory({
+  status: 'CONFIRMED'
+});
 ```
 
 ---

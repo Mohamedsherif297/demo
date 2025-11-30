@@ -36,4 +36,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
      * Finds all subscriptions with a specific status with pagination.
      */
     Page<Subscription> findByStatusStatusName(String status, Pageable pageable);
+
+    /**
+     * Finds all subscriptions with a specific status.
+     * Used by scheduler to get all active subscriptions.
+     */
+    List<Subscription> findByStatus_StatusName(String statusName);
 }

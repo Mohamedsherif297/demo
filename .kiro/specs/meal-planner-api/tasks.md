@@ -76,11 +76,11 @@
     - **Property 2: Name search containment**
     - **Validates: Requirements 1.2**
 
-  - [ ]* 3.3 Write property test for rating filter
+  - [x] 3.3 Write property test for rating filter
     - **Property 3: Minimum rating filter**
     - **Validates: Requirements 1.3**
 
-  - [ ]* 3.4 Write property test for allergen exclusion
+  - [x] 3.4 Write property test for allergen exclusion
     - **Property 4: Allergen exclusion filter**
     - **Validates: Requirements 1.4**
 
@@ -90,11 +90,11 @@
     - Update or create rating record
     - _Requirements: 2.1, 2.2, 2.3_
 
-  - [ ]* 3.6 Write property test for valid rating acceptance
+  - [x] 3.6 Write property test for valid rating acceptance
     - **Property 6: Valid rating acceptance**
     - **Validates: Requirements 2.1**
 
-  - [ ]* 3.7 Write property test for invalid rating rejection
+  - [x] 3.7 Write property test for invalid rating rejection
     - **Property 7: Invalid rating rejection**
     - **Validates: Requirements 2.2**
 
@@ -105,15 +105,15 @@
     - Throw ResourceNotFoundException for non-existent meals
     - _Requirements: 3.1, 3.2, 3.3, 12.2_
 
-  - [ ]* 3.9 Write property test for meal creation
+  - [x] 3.9 Write property test for meal creation
     - **Property 9: Meal creation with ID generation**
     - **Validates: Requirements 3.1**
 
-  - [ ]* 3.10 Write property test for meal update
+  - [x] 3.10 Write property test for meal update
     - **Property 10: Meal update persistence**
     - **Validates: Requirements 3.2**
 
-  - [ ]* 3.11 Write property test for meal deletion
+  - [x] 3.11 Write property test for meal deletion
     - **Property 11: Meal deletion removes from catalog**
     - **Validates: Requirements 3.3**
 
@@ -125,11 +125,11 @@
     - Map entities to response DTOs
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-  - [ ]* 4.2 Write property test for plan category filter
+  - [x] 4.2 Write property test for plan category filter
     - **Property 13: Plan category filter**
     - **Validates: Requirements 4.3**
 
-  - [ ]* 4.3 Write property test for plan detail completeness
+  - [x] 4.3 Write property test for plan detail completeness
     - **Property 14: Plan detail completeness**
     - **Validates: Requirements 4.4**
 
@@ -139,11 +139,11 @@
     - Create deletePlan method with ownership verification and cascade deletion
     - _Requirements: 5.1, 5.4_
 
-  - [ ]* 4.5 Write property test for plan user association
+  - [x] 4.5 Write property test for plan user association
     - **Property 15: Custom plan user association**
     - **Validates: Requirements 5.1**
 
-  - [ ]* 4.6 Write property test for plan deletion cascade
+  - [x] 4.6 Write property test for plan deletion cascade
     - **Property 18: Plan deletion cascades to associations**
     - **Validates: Requirements 5.4**
 
@@ -153,11 +153,11 @@
     - Ensure plan persists after meal removal
     - _Requirements: 5.2, 5.3_
 
-  - [ ]* 4.8 Write property test for meal addition
+  - [x] 4.8 Write property test for meal addition
     - **Property 16: Meal-to-plan association creation**
     - **Validates: Requirements 5.2**
 
-  - [ ]* 4.9 Write property test for meal removal
+  - [x] 4.9 Write property test for meal removal
     - **Property 17: Meal removal preserves plan**
     - **Validates: Requirements 5.3**
 
@@ -375,7 +375,7 @@
     - Extract authenticated user from SecurityContextHolder
     - _Requirements: 3.4, 6.3, 8.4, 9.4_
 
-  - [ ]* 9.3 Write unit tests for authorization
+  - [x] 9.3 Write unit tests for authorization
     - Test non-admin users cannot access admin endpoints
     - Test users cannot access other users' subscriptions
     - Test users cannot modify other users' plans

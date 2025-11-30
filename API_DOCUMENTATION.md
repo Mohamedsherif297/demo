@@ -1265,3 +1265,405 @@ spring.mail.password=your-app-password
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 ```
+
+---
+
+## 📦 Delivery Tracking
+
+The Meal Planner API includes a comprehensive delivery tracking system for monitoring daily meal deliveries.
+
+### Quick Overview
+
+- **Automatic Creation:** Deliveries are automatically created daily at midnight for active subscriptions
+- **Status Progression:** Deliveries progress through PREPARING → SHIPPED → DELIVERED → CONFIRMED
+- **User Control:** Users can update delivery preferences (time/address) and confirm receipt
+- **Admin Monitoring:** Admins can monitor and manage all deliveries with filtering
+
+### Status Lifecycle
+
+1. **PREPARING** - Initial status when delivery is created (default)
+2. **SHIPPED** - Delivery is in transit (auto-transitions 2 hours before delivery time)
+3. **DELIVERED** - Delivery has arrived (auto-transitions at delivery time)
+4. **CONFIRMED** - User has confirmed receipt (manual confirmation only)
+
+### User Endpoints
+
+#### 34. Get Current Delivery
+Get today's delivery for the authenticated user.
+
+**Endpoint:** `GET /api/deliveries/current`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+```json
+{
+  "deliveryId": 123,
+  "deliveryDate": "2024-01-15",
+  "deliveryTime": "18:00",
+  "address": "123 Main St, City, Country",
+  "status": "SHIPPED",
+  "statusUpdatedAt": "2024-01-15T16:00:00",
+  "confirmedAt": null,
+  "meals": [
+    {
+      "mealId": 1,
+      "name": "Grilled Chicken Salad",
+      "calories": 350,
+      "protein": 35,
+      "carbs": 20,
+      "fats": 15
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `404 Not Found` - No delivery found for today
+
+---
+
+#### 35. Get Delivery by ID
+Get details of a specific delivery. Users can only access their own deliveries.
+
+**Endpoint:** `GET /api/deliveries/{id}`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+```json
+{
+  "deliveryId": 123,
+  "deliveryDate": "2024-01-15",
+  "deliveryTime": "18:00",
+  "address": "123 Main St, City, Country",
+  "status": "DELIVERED",
+  "statusUpdatedAt": "2024-01-15T18:00:00",
+  "confirmedAt": null,
+  "meals": [...]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Delivery does not belong to user
+- `404 Not Found` - Delivery not found
+
+---
+
+#### 36. Get Delivery History
+Get paginated delivery history with optional filtering.
+
+**Endpoint:** `GET /api/deliveries/history`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Query Parameters:**
+- `startDate` (optional) - Filter by start date (YYYY-MM-DD)
+- `endDate` (optional) - Filter by end date (YYYY-MM-DD)
+- `status` (optional) - Filter by status (PREPARING, SHIPPED, DELIVERED, CONFIRMED)
+- `page` (default: 0) - Page number
+- `size` (default: 20) - Items per page
+
+**Response (200 OK):**
+```json
+{
+  "content": [
+    {
+      "deliveryId": 125,
+      "deliveryDate": "2024-01-14",
+      "status": "CONFIRMED",
+      "deliveryTime": "18:00",
+      "confirmed": true,
+      "mealCount": 3
+    }
+  ],
+  "totalPages": 3,
+  "totalElements": 30,
+  "size": 20,
+  "number": 0
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+
+---
+
+#### 37. Update Delivery Preferences
+Update delivery time and/or address. Only allowed when status is PREPARING.
+
+**Endpoint:** `PATCH /api/deliveries/{id}`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request Body:** (at least one field required)
+```json
+{
+  "deliveryTime": "19:30",
+  "address": "456 Oak Avenue, City, Country"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "deliveryId": 123,
+  "deliveryDate": "2024-01-15",
+  "deliveryTime": "19:30",
+  "address": "456 Oak Avenue, City, Country",
+  "status": "PREPARING",
+  "statusUpdatedAt": "2024-01-15T08:00:00",
+  "confirmedAt": null,
+  "meals": [...]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Delivery does not belong to user
+- `404 Not Found` - Delivery not found
+- `400 Bad Request` - Invalid input or delivery has already shipped
+
+---
+
+#### 38. Confirm Delivery
+Confirm receipt of a delivered order. Only allowed when status is DELIVERED.
+
+**Endpoint:** `POST /api/deliveries/{id}/confirm`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response (200 OK):**
+```json
+{
+  "deliveryId": 123,
+  "deliveryDate": "2024-01-15",
+  "deliveryTime": "18:00",
+  "address": "123 Main St, City, Country",
+  "status": "CONFIRMED",
+  "statusUpdatedAt": "2024-01-15T18:00:00",
+  "confirmedAt": "2024-01-15T18:15:30",
+  "meals": [...]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - Delivery does not belong to user
+- `404 Not Found` - Delivery not found
+- `400 Bad Request` - Delivery is not in DELIVERED status
+
+---
+
+### Admin Endpoints
+
+#### 39. List All Deliveries (Admin)
+Get paginated list of all deliveries with optional filtering.
+
+**Endpoint:** `GET /api/admin/deliveries`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Required Role:** ADMIN
+
+**Query Parameters:**
+- `status` (optional) - Filter by status
+- `date` (optional) - Filter by delivery date (YYYY-MM-DD)
+- `userId` (optional) - Filter by user ID
+- `userEmail` (optional) - Filter by user email (partial match)
+- `page` (default: 0) - Page number
+- `size` (default: 20) - Items per page
+
+**Response (200 OK):**
+```json
+{
+  "content": [
+    {
+      "deliveryId": 123,
+      "deliveryDate": "2024-01-15",
+      "deliveryTime": "18:00",
+      "address": "123 Main St, City, Country",
+      "status": "DELIVERED",
+      "createdAt": "2024-01-15T08:00:00",
+      "statusUpdatedAt": "2024-01-15T18:00:00",
+      "confirmedAt": null,
+      "userId": 42,
+      "userEmail": "john@example.com",
+      "userName": "John Doe",
+      "subscriptionId": 10,
+      "subscriptionPlan": "30-Day Weight Loss",
+      "meals": [...],
+      "statusHistory": []
+    }
+  ],
+  "totalPages": 5,
+  "totalElements": 95,
+  "size": 20,
+  "number": 0
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - User does not have ADMIN role
+
+---
+
+#### 40. Get Delivery Details (Admin)
+Get complete delivery details including user information and status history.
+
+**Endpoint:** `GET /api/admin/deliveries/{id}`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Required Role:** ADMIN
+
+**Response (200 OK):**
+```json
+{
+  "deliveryId": 123,
+  "deliveryDate": "2024-01-15",
+  "deliveryTime": "18:00",
+  "address": "123 Main St, City, Country",
+  "status": "DELIVERED",
+  "createdAt": "2024-01-15T08:00:00",
+  "statusUpdatedAt": "2024-01-15T18:00:00",
+  "confirmedAt": null,
+  "userId": 42,
+  "userEmail": "john@example.com",
+  "userName": "John Doe",
+  "subscriptionId": 10,
+  "subscriptionPlan": "30-Day Weight Loss",
+  "meals": [...],
+  "statusHistory": [
+    {
+      "status": "PREPARING",
+      "timestamp": "2024-01-15T08:00:00",
+      "updatedBy": "System"
+    },
+    {
+      "status": "SHIPPED",
+      "timestamp": "2024-01-15T16:00:00",
+      "updatedBy": "System"
+    },
+    {
+      "status": "DELIVERED",
+      "timestamp": "2024-01-15T18:00:00",
+      "updatedBy": "System"
+    }
+  ]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - User does not have ADMIN role
+- `404 Not Found` - Delivery not found
+
+---
+
+#### 41. Update Delivery Status (Admin)
+Manually update delivery status.
+
+**Endpoint:** `PATCH /api/admin/deliveries/{id}/status`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Required Role:** ADMIN
+
+**Request Body:**
+```json
+{
+  "status": "DELIVERED"
+}
+```
+
+**Valid Status Values:** PREPARING, SHIPPED, DELIVERED, CONFIRMED
+
+**Response (200 OK):**
+```json
+{
+  "deliveryId": 123,
+  "deliveryDate": "2024-01-15",
+  "deliveryTime": "18:00",
+  "address": "123 Main St, City, Country",
+  "status": "DELIVERED",
+  "createdAt": "2024-01-15T08:00:00",
+  "statusUpdatedAt": "2024-01-15T17:30:00",
+  "confirmedAt": null,
+  "userId": 42,
+  "userEmail": "john@example.com",
+  "userName": "John Doe",
+  "subscriptionId": 10,
+  "subscriptionPlan": "30-Day Weight Loss",
+  "meals": [...],
+  "statusHistory": [...]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Not authenticated
+- `403 Forbidden` - User does not have ADMIN role
+- `404 Not Found` - Delivery not found
+- `400 Bad Request` - Invalid status value
+
+---
+
+### Automatic Status Progression
+
+The system automatically progresses delivery statuses:
+
+1. **PREPARING → SHIPPED:** 2 hours before delivery time
+2. **SHIPPED → DELIVERED:** At delivery time
+3. **DELIVERED → CONFIRMED:** Manual user confirmation only
+
+**Scheduler Jobs:**
+- **Daily Delivery Creation:** Runs at midnight (00:00), creates deliveries for all active subscriptions
+- **Status Progression:** Runs every minute, updates deliveries based on time
+
+### Complete Documentation
+
+For detailed delivery tracking API documentation including:
+- Complete request/response examples
+- Error responses and troubleshooting
+- Status progression rules
+- Integration examples
+- Business rules and security
+
+**See:** [Delivery Tracking API Documentation](DELIVERY_TRACKING_API.md)
+
+---
+
+## 📚 Additional Resources
+
+- [Delivery Tracking API](DELIVERY_TRACKING_API.md) - Complete delivery tracking documentation
+- [Authentication Guide](AUTHENTICATION.md) - Detailed authentication information
+- [Frontend Integration](FRONTEND_INTEGRATION.md) - Frontend integration guide

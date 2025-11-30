@@ -99,6 +99,18 @@ public class SubscriptionController {
     }
 
     /**
+     * PATCH /api/subscriptions/{id}/preferences - Update subscription preferences (owner)
+     */
+    @PatchMapping("/api/subscriptions/{id}/preferences")
+    public ResponseEntity<SubscriptionResponseDto> updateSubscriptionPreferences(
+            @PathVariable Integer id,
+            @Valid @RequestBody UpdateSubscriptionPreferencesDto updateDto) {
+        Integer userId = getCurrentUserId();
+        SubscriptionResponseDto subscription = subscriptionService.updateSubscriptionPreferences(id, userId, updateDto);
+        return ResponseEntity.ok(subscription);
+    }
+
+    /**
      * GET /api/subscriptions/{id}/meals - Get scheduled meals (owner or admin)
      */
     @GetMapping("/api/subscriptions/{id}/meals")

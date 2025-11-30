@@ -2,6 +2,7 @@ package com.mealplanner.api.model;
 
 import jakarta.persistence.*;
 import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "delivery")
@@ -24,6 +25,19 @@ public class Delivery {
     @JoinColumn(name = "status_id", referencedColumnName = "statusId")
     private DeliveryStatus status; // Maps to status_id
 
+    // NEW FIELDS for delivery tracking
+    @Column(name = "created_at")
+    private LocalDateTime createdAt; // Maps to created_at
+
+    @Column(name = "status_updated_at")
+    private LocalDateTime statusUpdatedAt; // Maps to status_updated_at
+
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt; // Maps to confirmed_at
+
+    @Column(name = "estimated_delivery_time")
+    private LocalTime estimatedDeliveryTime; // Maps to estimated_delivery_time
+
     // ----------------------------------------------------
     // CONSTRUCTORS
     // ----------------------------------------------------
@@ -34,6 +48,7 @@ public class Delivery {
         this.address = address;
         this.deliveryTime = deliveryTime;
         this.status = status;
+        this.createdAt = LocalDateTime.now();
     }
 
     // ----------------------------------------------------
@@ -53,4 +68,16 @@ public class Delivery {
 
     public DeliveryStatus getStatus() { return status; }
     public void setStatus(DeliveryStatus status) { this.status = status; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getStatusUpdatedAt() { return statusUpdatedAt; }
+    public void setStatusUpdatedAt(LocalDateTime statusUpdatedAt) { this.statusUpdatedAt = statusUpdatedAt; }
+
+    public LocalDateTime getConfirmedAt() { return confirmedAt; }
+    public void setConfirmedAt(LocalDateTime confirmedAt) { this.confirmedAt = confirmedAt; }
+
+    public LocalTime getEstimatedDeliveryTime() { return estimatedDeliveryTime; }
+    public void setEstimatedDeliveryTime(LocalTime estimatedDeliveryTime) { this.estimatedDeliveryTime = estimatedDeliveryTime; }
 }

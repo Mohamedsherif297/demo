@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -53,6 +54,17 @@ public class SubscriptionService {
         // Validate start date is not in the past
         if (dto.getStartDate().isBefore(LocalDate.now())) {
             throw new ValidationException("Start date cannot be in the past");
+        }
+
+        // Validate preferred time (Requirement 1.2)
+        if (dto.getPreferredTime() == null) {
+            throw new ValidationException("Preferred delivery time is required");
+        }
+        
+        // Validate time is reasonable (between 6 AM and 11 PM)
+        LocalTime preferredTime = dto.getPreferredTime();
+        if (preferredTime.isBefore(LocalTime.of(6, 0)) || preferredTime.isAfter(LocalTime.of(23, 0))) {
+            throw new ValidationException("Preferred delivery time must be between 06:00 and 23:00");
         }
 
         // Get user
@@ -182,6 +194,40 @@ public class SubscriptionService {
 
         subscription.setStatus(cancelledStatus);
         subscriptionRepository.save(subscription);
+    }
+
+    /**
+     * Updates subscription preferences (preferred delivery time).
+     * Verifies ownership.
+     * 
+     * Requirements: 1.4
+     */
+    @SuppressWarnings("null")
+    public SubscriptionResponseDto updateSubscriptionPreferences(Integer subscriptionId, Integer userId, UpdateSubscriptionPreferencesDto dto) {
+        Subscription subscription = subscriptionRepository.findById(subscriptionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found"));
+
+        // Verify ownership
+        if (!subscription.getUser().getUserId().equals(userId)) {
+            throw new ForbiddenException("You do not have permission to modify this subscription");
+        }
+
+        // Validate preferred time (Requirement 1.2, 1.4)
+        if (dto.getPreferredTime() == null) {
+            throw new ValidationException("Preferred delivery time is required");
+        }
+        
+        // Validate time is reasonable (between 6 AM and 11 PM)
+        LocalTime preferredTime = dto.getPreferredTime();
+        if (preferredTime.isBefore(LocalTime.of(6, 0)) || preferredTime.isAfter(LocalTime.of(23, 0))) {
+            throw new ValidationException("Preferred delivery time must be between 06:00 and 23:00");
+        }
+
+        // Update preferred time
+        subscription.setPreferredTime(dto.getPreferredTime());
+        subscription = subscriptionRepository.save(subscription);
+
+        return mapToResponseDto(subscription);
     }
 
     /**
