@@ -30,26 +30,43 @@ public class UserService {
     }
 
     public User registerNewUser(User newUser, String rawPassword) {
+        System.out.println("UserService.registerNewUser - START");
+        System.out.println("Email: " + newUser.getEmail());
+        
         if (userRepository.findByEmail(newUser.getEmail()).isPresent()) {
+            System.err.println("ERROR: Email already exists - " + newUser.getEmail());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already exists.");
         }
+        System.out.println("Email check passed");
 
         // Validate password strength
         PasswordValidator.ValidationResult validationResult = PasswordValidator.validate(rawPassword);
         if (!validationResult.isValid()) {
+            System.err.println("ERROR: Password validation failed - " + validationResult.getErrorMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, validationResult.getErrorMessage());
         }
+        System.out.println("Password validation passed");
 
-        Role clientRole = roleRepository.findByRoleName("CLIENT")
-                .orElseThrow(() -> new ResourceNotFoundException("Default role 'CLIENT' not found."));
+        System.out.println("Looking for USER role...");
+        Role clientRole = roleRepository.findByRoleName("USER")
+                .orElseThrow(() -> {
+                    System.err.println("ERROR: USER role not found in database!");
+                    return new ResourceNotFoundException("Default role 'USER' not found.");
+                });
+        System.out.println("USER role found with ID: " + clientRole.getRoleId());
 
         String hashedPassword = passwordEncoder.encode(rawPassword);
+        System.out.println("Password hashed successfully");
         
         newUser.setPasswordHash(hashedPassword);
         newUser.setRole(clientRole);
         newUser.setEmailVerified(false);
 
-        return userRepository.save(newUser);
+        System.out.println("Saving user to database...");
+        User savedUser = userRepository.save(newUser);
+        System.out.println("User saved successfully with ID: " + savedUser.getUserId());
+        
+        return savedUser;
     }
 
     public Optional<User> authenticate(String email, String rawPassword) {

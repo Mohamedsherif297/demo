@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.stream.Collectors;
 
@@ -24,6 +25,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.NOT_FOUND.value(),
                 "Not Found",
                 ex.getMessage(),
+                "The requested resource could not be found. Please verify the ID or parameters and try again.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
@@ -34,8 +36,9 @@ public class GlobalExceptionHandler {
             ValidationException ex, HttpServletRequest request) {
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+                "Validation Error",
                 ex.getMessage(),
+                "The request data failed validation. Please check the input fields and ensure all required data is provided in the correct format.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -48,6 +51,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNAUTHORIZED.value(),
                 "Unauthorized",
                 ex.getMessage(),
+                "Authentication is required to access this resource. Please log in with valid credentials or provide a valid access token.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
@@ -60,6 +64,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.FORBIDDEN.value(),
                 "Forbidden",
                 ex.getMessage(),
+                "You do not have permission to access this resource. This action requires specific privileges or ownership.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -70,8 +75,9 @@ public class GlobalExceptionHandler {
             AccessDeniedException ex, HttpServletRequest request) {
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.FORBIDDEN.value(),
-                "Forbidden",
+                "Access Denied",
                 "Access denied",
+                "You do not have sufficient permissions to perform this action. Contact an administrator if you believe this is an error.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -82,8 +88,9 @@ public class GlobalExceptionHandler {
             BusinessRuleException ex, HttpServletRequest request) {
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.UNPROCESSABLE_ENTITY.value(),
-                "Unprocessable Entity",
+                "Business Rule Violation",
                 ex.getMessage(),
+                "The request violates a business rule or constraint. Please review the error message and adjust your request accordingly.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
@@ -94,11 +101,27 @@ public class GlobalExceptionHandler {
             DeliveryException ex, HttpServletRequest request) {
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+                "Delivery Error",
                 ex.getMessage(),
+                "The delivery operation could not be completed due to invalid state or constraints. Please check the delivery status and requirements.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponseDto> handleResponseStatus(
+            ResponseStatusException ex, HttpServletRequest request) {
+        String description = getDescriptionForStatus(ex.getStatusCode().value());
+        
+        ErrorResponseDto error = new ErrorResponseDto(
+                ex.getStatusCode().value(),
+                ex.getStatusCode().toString(),
+                ex.getReason() != null ? ex.getReason() : "Request failed",
+                description,
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(ex.getStatusCode()).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -125,8 +148,9 @@ public class GlobalExceptionHandler {
         
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+                "Validation Failed",
                 finalMessage,
+                "One or more fields in the request body failed validation. Please ensure all required fields are provided with valid values.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -143,8 +167,9 @@ public class GlobalExceptionHandler {
         
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+                "Invalid Parameter Type",
                 message,
+                "A parameter in the request has an incorrect data type. Please check the API documentation for the expected parameter types.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -166,8 +191,9 @@ public class GlobalExceptionHandler {
         
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+                "Invalid Request Body",
                 message,
+                "The request body could not be parsed. Please ensure the JSON is properly formatted and all fields have the correct data types.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -193,8 +219,9 @@ public class GlobalExceptionHandler {
         
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+                "Data Integrity Error",
                 message,
+                "The operation violates a database constraint. This could be due to duplicate entries, missing required fields, or invalid references.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -203,13 +230,35 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDto> handleGeneral(
             Exception ex, HttpServletRequest request) {
+        // Log the actual error for debugging
+        System.err.println("=== UNHANDLED EXCEPTION ===");
+        System.err.println("Type: " + ex.getClass().getName());
+        System.err.println("Message: " + ex.getMessage());
+        System.err.println("Path: " + request.getRequestURI());
+        ex.printStackTrace();
+        
         // Prevent exposure of internal details in error messages
         ErrorResponseDto error = new ErrorResponseDto(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
-                "An unexpected error occurred",
+                "An unexpected error occurred while processing your request",
+                "The server encountered an unexpected condition. Please try again later or contact support if the problem persists.",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+
+    // Helper method to provide descriptions based on status code
+    private String getDescriptionForStatus(int statusCode) {
+        return switch (statusCode) {
+            case 400 -> "The request contains invalid data or is malformed. Please check your input and try again.";
+            case 401 -> "Authentication is required. Please provide valid credentials or a valid access token.";
+            case 403 -> "You do not have permission to access this resource. Contact an administrator if needed.";
+            case 404 -> "The requested resource was not found. Please verify the URL and parameters.";
+            case 409 -> "The request conflicts with the current state of the resource. This may be due to duplicate data.";
+            case 422 -> "The request is well-formed but contains semantic errors. Please review the business rules.";
+            case 500 -> "An internal server error occurred. Please try again later or contact support.";
+            default -> "An error occurred while processing your request. Please try again.";
+        };
     }
 }

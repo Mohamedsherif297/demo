@@ -1,14 +1,17 @@
 package com.mealplanner.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.LocalDateTime;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponseDto {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime timestamp;
     private int status;
     private String error;
     private String message;
+    private String description;
     private String path;
 
     public ErrorResponseDto() {
@@ -20,6 +23,15 @@ public class ErrorResponseDto {
         this.status = status;
         this.error = error;
         this.message = message;
+        this.path = path;
+    }
+
+    public ErrorResponseDto(int status, String error, String message, String description, String path) {
+        this.timestamp = LocalDateTime.now();
+        this.status = status;
+        this.error = error;
+        this.message = message;
+        this.description = description;
         this.path = path;
     }
 
@@ -62,5 +74,13 @@ public class ErrorResponseDto {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

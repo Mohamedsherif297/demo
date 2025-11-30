@@ -21,9 +21,36 @@ Create a new user account.
 {
   "fullName": "John Doe",
   "email": "john@example.com",
-  "password": "securePassword123"
+  "password": "securePassword123",
+  "phoneNumber": "+1234567890",
+  "address": "123 Main St, City, Country",
+  "photoUrl": "https://example.com/photo.jpg",
+  "dob": "1990-01-15",
+  "weight": 75.5,
+  "height": 180.0,
+  "gymDays": 4,
+  "weightGoal": "lose",
+  "weeklyDuration": 300,
+  "caloriesPerDay": 2000
 }
 ```
+
+**Required Fields:**
+- `fullName` - User's full name (1-255 characters)
+- `email` - Valid email address (unique)
+- `password` - Password (minimum 8 characters)
+
+**Optional Fields:**
+- `phoneNumber` - Phone number (max 20 characters)
+- `address` - Delivery address (max 500 characters)
+- `photoUrl` - Profile photo URL (max 500 characters)
+- `dob` - Date of birth (YYYY-MM-DD format, must be in the past)
+- `weight` - Weight in kg (0-500)
+- `height` - Height in cm (0-300)
+- `gymDays` - Number of gym days per week (0-7)
+- `weightGoal` - Weight goal (e.g., "lose", "gain", "maintain")
+- `weeklyDuration` - Weekly exercise duration in minutes
+- `caloriesPerDay` - Target daily calorie intake (0-10000)
 
 **Response (201 Created):**
 ```json
@@ -39,7 +66,7 @@ Create a new user account.
 ```
 
 **Error Responses:**
-- `400 Bad Request` - Email already exists
+- `400 Bad Request` - Email already exists or validation error
 
 ---
 
@@ -374,14 +401,23 @@ Request a new email verification token.
 ### JavaScript/TypeScript
 
 ```javascript
-// Register
+// Register with all fields
 const registerResponse = await fetch('http://localhost:8080/api/v1/users/register', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     fullName: 'John Doe',
     email: 'john@example.com',
-    password: 'securePassword123'
+    password: 'securePassword123',
+    phoneNumber: '+1234567890',
+    address: '123 Main St, City, Country',
+    dob: '1990-01-15',
+    weight: 75.5,
+    height: 180.0,
+    gymDays: 4,
+    weightGoal: 'lose',
+    weeklyDuration: 300,
+    caloriesPerDay: 2000
   })
 });
 const { token, refreshToken } = await registerResponse.json();

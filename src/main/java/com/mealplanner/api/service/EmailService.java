@@ -14,8 +14,11 @@ public class EmailService {
     @Value("${app.url:http://localhost:3000}")
     private String appUrl;
 
-    @Value("${spring.mail.username}")
+    @Value("${spring.mail.username:noreply@mealplanner.com}")
     private String fromEmail;
+    
+    @Value("${email.enabled:false}")
+    private boolean emailEnabled;
 
     @Autowired
     public EmailService(JavaMailSender mailSender) {
@@ -24,6 +27,15 @@ public class EmailService {
 
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
         String resetLink = appUrl + "/reset-password?token=" + resetToken;
+        
+        if (!emailEnabled) {
+            System.out.println("==============================================");
+            System.out.println("📧 PASSWORD RESET EMAIL (Email Disabled)");
+            System.out.println("To: " + toEmail);
+            System.out.println("Reset Link: " + resetLink);
+            System.out.println("==============================================");
+            return;
+        }
         
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
@@ -57,6 +69,15 @@ public class EmailService {
     public void sendEmailVerification(String toEmail, String verificationToken) {
         String verificationLink = appUrl + "/verify-email?token=" + verificationToken;
         
+        if (!emailEnabled) {
+            System.out.println("==============================================");
+            System.out.println("📧 EMAIL VERIFICATION (Email Disabled)");
+            System.out.println("To: " + toEmail);
+            System.out.println("Verification Link: " + verificationLink);
+            System.out.println("==============================================");
+            return;
+        }
+        
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
@@ -86,6 +107,11 @@ public class EmailService {
     }
 
     public void sendWelcomeEmail(String toEmail, String fullName) {
+        if (!emailEnabled) {
+            System.out.println("📧 Welcome email (Email Disabled) - To: " + toEmail);
+            return;
+        }
+        
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);

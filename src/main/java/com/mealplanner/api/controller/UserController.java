@@ -48,39 +48,99 @@ public class UserController {
     }
 
     @PostMapping("/register") 
-    public ResponseEntity<AuthResponseDto> registerUser(@RequestBody UserRegistrationDto registrationDto) {
-        
-        User newUser = new User(
-            registrationDto.getFullName(), 
-            registrationDto.getEmail(), 
-            null,
-            null
-        );
+    public ResponseEntity<?> registerUser(@RequestBody UserRegistrationDto registrationDto) {
+        try {
+            System.out.println("=== REGISTRATION ATTEMPT ===");
+            System.out.println("Email: " + registrationDto.getEmail());
+            System.out.println("Full Name: " + registrationDto.getFullName());
+            
+            User newUser = new User(
+                registrationDto.getFullName(), 
+                registrationDto.getEmail(), 
+                null,
+                null
+            );
+            
+            // Set optional fields if provided
+            if (registrationDto.getPhoneNumber() != null) {
+                newUser.setPhoneNumber(registrationDto.getPhoneNumber());
+            }
+            if (registrationDto.getAddress() != null) {
+                newUser.setAddress(registrationDto.getAddress());
+            }
+            if (registrationDto.getPhotoUrl() != null) {
+                newUser.setPhotoUrl(registrationDto.getPhotoUrl());
+            }
+            if (registrationDto.getDob() != null) {
+                newUser.setDob(registrationDto.getDob());
+            }
+            if (registrationDto.getWeight() != null) {
+                newUser.setWeight(registrationDto.getWeight());
+            }
+            if (registrationDto.getHeight() != null) {
+                newUser.setHeight(registrationDto.getHeight());
+            }
+            if (registrationDto.getGymDays() != null) {
+                newUser.setGymDays(registrationDto.getGymDays());
+            }
+            if (registrationDto.getWeightGoal() != null) {
+                newUser.setWeightGoal(registrationDto.getWeightGoal());
+            }
+            if (registrationDto.getWeeklyDuration() != null) {
+                newUser.setWeeklyDuration(registrationDto.getWeeklyDuration());
+            }
+            if (registrationDto.getCaloriesPerDay() != null) {
+                newUser.setCaloriesPerDay(registrationDto.getCaloriesPerDay());
+            }
 
-        User savedUser = userService.registerNewUser(newUser, registrationDto.getPassword());
+            System.out.println("Calling userService.registerNewUser...");
+            User savedUser = userService.registerNewUser(newUser, registrationDto.getPassword());
+            System.out.println("User saved successfully with ID: " + savedUser.getUserId());
 
-        // Generate tokens
-        CustomUserDetails userDetails = new CustomUserDetails(savedUser);
-        String accessToken = jwtUtil.generateToken(userDetails);
-        String refreshToken = refreshTokenService.createRefreshToken(savedUser);
+            // Generate tokens
+            CustomUserDetails userDetails = new CustomUserDetails(savedUser);
+            String accessToken = jwtUtil.generateToken(userDetails);
+            String refreshToken = refreshTokenService.createRefreshToken(savedUser);
 
-        // Send welcome email
-        emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFullName());
-        
-        // Send email verification
-        String verificationToken = emailVerificationService.createEmailVerificationToken(savedUser);
-        emailService.sendEmailVerification(savedUser.getEmail(), verificationToken);
+            // Send welcome email (non-blocking, don't fail registration if email fails)
+            try {
+                emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFullName());
+            } catch (Exception e) {
+                System.err.println("Failed to send welcome email: " + e.getMessage());
+            }
+            
+            // Send email verification (non-blocking, don't fail registration if email fails)
+            try {
+                String verificationToken = emailVerificationService.createEmailVerificationToken(savedUser);
+                emailService.sendEmailVerification(savedUser.getEmail(), verificationToken);
+            } catch (Exception e) {
+                System.err.println("Failed to send verification email: " + e.getMessage());
+            }
 
-        AuthResponseDto responseDto = new AuthResponseDto(
-            accessToken,
-            refreshToken,
-            savedUser.getUserId(),
-            savedUser.getEmail(),
-            savedUser.getFullName(),
-            savedUser.getRole().getRoleName()
-        );
+            AuthResponseDto responseDto = new AuthResponseDto(
+                accessToken,
+                refreshToken,
+                savedUser.getUserId(),
+                savedUser.getEmail(),
+                savedUser.getFullName(),
+                savedUser.getRole().getRoleName()
+            );
 
-        return new ResponseEntity<>(responseDto, HttpStatus.CREATED); 
+            return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
+        } catch (Exception e) {
+            System.err.println("=== REGISTRATION ERROR ===");
+            System.err.println("Error Type: " + e.getClass().getName());
+            System.err.println("Error Message: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Return detailed error in response
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                    "error", e.getClass().getSimpleName(),
+                    "message", e.getMessage() != null ? e.getMessage() : "Unknown error",
+                    "details", "Check server logs for full stack trace"
+                ));
+        }
     }
 
     @PostMapping("/login")
